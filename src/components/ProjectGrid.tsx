@@ -1,21 +1,24 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProjectCard from "@/components/ProjectCard";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Project {
   id: string;
   title: string;
   description: string;
-  image: string;
-  author: {
-    name: string;
-    avatar: string;
+  image_url: string;
+  creator_id: string;
+  profiles: {
+    username: string;
+    avatar_url: string;
   };
-  tags: string[];
-  isPrivate: boolean;
-  likes: number;
-  views: number;
-  collaborators: number;
+  tech_stack: string[];
+  is_private: boolean;
+  looking_for_collaborators: boolean;
+  created_at: string;
+  project_likes: { id: string }[];
+  project_collaborators: { id: string }[];
 }
 
 interface ProjectGridProps {
@@ -23,84 +26,74 @@ interface ProjectGridProps {
   selectedTags: string[];
 }
 
-// Mock data - this will be replaced with Supabase data
-const mockProjects: Project[] = [
-  {
-    id: "1",
-    title: "TaskFlow - Project Management App",
-    description: "A modern project management tool built with React and Node.js. Features real-time collaboration, task tracking, and team analytics.",
-    image: "/placeholder.svg",
-    author: {
-      name: "Sarah Chen",
-      avatar: "/placeholder.svg"
-    },
-    tags: ["React", "Node.js", "MongoDB", "Socket.io"],
-    isPrivate: false,
-    likes: 124,
-    views: 1250,
-    collaborators: 3
-  },
-  {
-    id: "2",
-    title: "AI Code Review Assistant",
-    description: "An intelligent code review tool that uses machine learning to provide automated feedback and suggestions for code improvements.",
-    image: "/placeholder.svg",
-    author: {
-      name: "Marcus Johnson",
-      avatar: "/placeholder.svg"
-    },
-    tags: ["Python", "TensorFlow", "React", "FastAPI"],
-    isPrivate: true,
-    likes: 89,
-    views: 890,
-    collaborators: 2
-  },
-  {
-    id: "3",
-    title: "EcoTrack - Sustainability Platform",
-    description: "Track your carbon footprint and discover eco-friendly alternatives. Built with Vue.js and featuring beautiful data visualizations.",
-    image: "/placeholder.svg",
-    author: {
-      name: "Emma Rodriguez",
-      avatar: "/placeholder.svg"
-    },
-    tags: ["Vue.js", "TypeScript", "PostgreSQL", "AWS"],
-    isPrivate: false,
-    likes: 156,
-    views: 2100,
-    collaborators: 4
-  },
-  {
-    id: "4",
-    title: "DevPortfolio Generator",
-    description: "Automatically generate stunning developer portfolios from GitHub data. Features customizable themes and one-click deployment.",
-    image: "/placeholder.svg",
-    author: {
-      name: "Alex Kim",
-      avatar: "/placeholder.svg"
-    },
-    tags: ["Next.js", "GitHub API", "Vercel", "Tailwind"],
-    isPrivate: false,
-    likes: 203,
-    views: 3200,
-    collaborators: 1
-  }
-];
-
 const ProjectGrid = ({ searchQuery, selectedTags }: ProjectGridProps) => {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          profiles:creator_id (username, avatar_url),
+          project_likes (id),
+          project_collaborators (id)
+        `)
+        .eq('is_private', false)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProjects(data || []);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter projects based on search and tags
-  const filteredProjects = mockProjects.filter((project) => {
+  const filteredProjects = projects.filter((project) => {
     const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         project.author.name.toLowerCase().includes(searchQuery.toLowerCase());
+                         project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         project.profiles?.username.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesTags = selectedTags.length === 0 || 
-                       selectedTags.some(tag => project.tags.includes(tag));
+                       selectedTags.some(tag => project.tech_stack?.includes(tag));
 
     return matchesSearch && matchesTags;
   });
+
+  // Transform data to match ProjectCard interface
+  const transformedProjects = filteredProjects.map(project => ({
+    id: project.id,
+    title: project.title,
+    description: project.description || '',
+    image: project.image_url || '/placeholder.svg',
+    author: {
+      name: project.profiles?.username || 'Unknown',
+      avatar: project.profiles?.avatar_url || '/placeholder.svg'
+    },
+    tags: project.tech_stack || [],
+    isPrivate: project.is_private,
+    likes: project.project_likes?.length || 0,
+    views: Math.floor(Math.random() * 1000) + 100, // Mock views for now
+    collaborators: project.project_collaborators?.length || 0
+  }));
+
+  if (loading) {
+    return (
+      <div className="animate-fade-in text-center py-12">
+        <div className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/20 max-w-md mx-auto">
+          <h3 className="text-xl font-semibold text-white mb-2">Loading projects...</h3>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">
@@ -117,9 +110,9 @@ const ProjectGrid = ({ searchQuery, selectedTags }: ProjectGridProps) => {
       </div>
 
       {/* Project Grid */}
-      {filteredProjects.length > 0 ? (
+      {transformedProjects.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProjects.map((project, index) => (
+          {transformedProjects.map((project, index) => (
             <div 
               key={project.id}
               className="animate-fade-in"
