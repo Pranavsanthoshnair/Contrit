@@ -1,11 +1,26 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from "react";
+import Navbar from "@/components/Navbar";
+import Hero from "@/components/Hero";
+import ProjectGrid from "@/components/ProjectGrid";
+import SearchFilters from "@/components/SearchFilters";
 
 const Index = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
+      <Navbar />
+      <Hero />
+      <div className="container mx-auto px-4 py-12">
+        <SearchFilters 
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedTags={selectedTags}
+          setSelectedTags={setSelectedTags}
+        />
+        <ProjectGrid searchQuery={searchQuery} selectedTags={selectedTags} />
       </div>
     </div>
   );
