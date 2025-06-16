@@ -19,7 +19,7 @@ const Hero = () => {
               Start Building
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 text-lg px-8 py-3">
+            <Button size="lg" className="backdrop-blur-md bg-white/10 border border-white/20 text-white hover:bg-white/20 text-lg px-8 py-3">
               Explore Projects
             </Button>
           </div>
